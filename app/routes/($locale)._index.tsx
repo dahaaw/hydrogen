@@ -21,7 +21,6 @@ export async function loader({context}: LoaderArgs) {
   const {collections} = await storefront.query(FEATURED_COLLECTION_QUERY);
   const featuredCollection = collections.nodes[0];
   const recommendedProducts = storefront.query(RECOMMENDED_PRODUCTS_QUERY);
-
   return defer({featuredCollection, recommendedProducts});
 }
 
@@ -40,6 +39,7 @@ function FeaturedCollection({
 }: {
   collection: FeaturedCollectionFragment;
 }) {
+  console.log(collection);
   const image = collection.image;
   return (
     <Link
