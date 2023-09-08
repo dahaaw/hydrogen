@@ -23,6 +23,11 @@ declare global {
     PRIVATE_STOREFRONT_API_TOKEN: string;
     PUBLIC_STORE_DOMAIN: string;
     PUBLIC_STOREFRONT_ID: string;
+    PRIVATE_ADMIN_API_TOKEN: string;
+    PRIVATE_ADMIN_API_VERSION: string;
+    USE_DUMMY_DATA: string;
+    SLEDGE_API_KEY: string;
+    SLEDGE_INSTANT_SEARCH_API_KEY: string;
   }
 }
 

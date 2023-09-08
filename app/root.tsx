@@ -1,4 +1,4 @@
-import {useNonce} from '@shopify/hydrogen';
+import {parseGid, useNonce} from '@shopify/hydrogen';
 import {defer, type LoaderArgs} from '@shopify/remix-oxygen';
 import {
   Links,
@@ -20,6 +20,11 @@ import resetStyles from './styles/reset.css';
 import appStyles from './styles/app.css';
 import {Layout} from '~/components/Layout';
 import tailwindCss from './styles/tailwind.css';
+
+import {getSledgeSession, getSledgeSettings} from '@sledge-app/api';
+import {SledgeProvider} from '@sledge-app/core';
+import sledgeStyle from '@sledge-app/core/style.css';
+import {redirect} from 'react-router';
 
 // This is important to avoid re-fetching root queries on sub-navigations
 export const shouldRevalidate: ShouldRevalidateFunction = ({
@@ -45,6 +50,7 @@ export function links() {
     {rel: 'stylesheet', href: tailwindCss},
     {rel: 'stylesheet', href: resetStyles},
     {rel: 'stylesheet', href: appStyles},
+    {rel: 'stylesheet', href: sledgeStyle},
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -87,6 +93,42 @@ export async function loader({context}: LoaderArgs) {
     },
   });
 
+  const customerVariables = {
+    variables: {
+      customerAccessToken: '',
+      country: context.storefront.i18n.country,
+      language: context.storefront.i18n.language,
+    },
+    cache: storefront.CacheNone(),
+  };
+
+  if (Boolean(customerAccessToken)) {
+    customerVariables.variables.customerAccessToken = customerAccessToken;
+  }
+  const {customer} = await storefront.query(CUSTOMER_QUERY, customerVariables);
+
+  const lastSledgeSession = context.session.get('sledgeSession');
+  const sledgeSession = await getSledgeSession(
+    lastSledgeSession,
+    context.env.SLEDGE_API_KEY,
+    context.env.SLEDGE_INSTANT_SEARCH_API_KEY,
+    parseGid(customer?.id)?.id || '',
+    customer?.email || '',
+    (customer?.firstName + ' ' + customer?.lastName).trim(),
+  );
+  const sledgeSettings = await getSledgeSettings(sledgeSession);
+  context.session.set('sledgeSession', sledgeSession);
+
+  if (!lastSledgeSession)
+    return redirect('/', {
+      headers: {
+        'Set-Cookie': await context.session.commit(),
+      },
+    });
+
+  if (lastSledgeSession?.token !== sledgeSession?.token)
+    headers.append('Set-Cookie', await context.session.commit());
+
   return defer(
     {
       cart: cartPromise,
@@ -94,6 +136,8 @@ export async function loader({context}: LoaderArgs) {
       header: await headerPromise,
       isLoggedIn,
       publicStoreDomain,
+      sledgeSession,
+      sledgeSettings,
     },
     {headers},
   );
@@ -112,9 +156,14 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Layout {...data}>
-          <Outlet />
-        </Layout>
+        <SledgeProvider
+          sledgeSession={data.sledgeSession}
+          sledgeSettings={data.sledgeSettings}
+        >
+          <Layout {...data}>
+            <Outlet />
+          </Layout>
+        </SledgeProvider>
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
         <LiveReload nonce={nonce} />
@@ -268,4 +317,24 @@ const FOOTER_QUERY = `#graphql
     }
   }
   ${MENU_FRAGMENT}
+` as const;
+
+const CUSTOMER_QUERY = `#graphql
+  query CustomerDetails(
+    $customerAccessToken: String!
+    $country: CountryCode
+    $language: LanguageCode
+  ) @inContext(country: $country, language: $language) {
+    customer(customerAccessToken: $customerAccessToken) {
+      ...CustomerDetails
+    }
+  }
+
+  fragment CustomerDetails on Customer {
+    id
+    firstName
+    lastName
+    phone
+    email
+  }
 ` as const;

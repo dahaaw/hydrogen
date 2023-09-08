@@ -6,11 +6,13 @@ import {
   type V2_MetaFunction,
 } from '@remix-run/react';
 import {Suspense} from 'react';
-import {Image, Money} from '@shopify/hydrogen';
+import {Image, Money, parseGid} from '@shopify/hydrogen';
 import type {
   FeaturedCollectionFragment,
   RecommendedProductsQuery,
 } from 'storefrontapi.generated';
+import {getProductsReviewInfo} from '@sledge-app/api';
+import {Rating} from '@sledge-app/react-product-review';
 
 export const meta: V2_MetaFunction = () => {
   return [{title: 'Hydrogen | Home'}];
@@ -21,7 +23,15 @@ export async function loader({context}: LoaderArgs) {
   const {collections} = await storefront.query(FEATURED_COLLECTION_QUERY);
   const featuredCollection = collections.nodes[0];
   const recommendedProducts = storefront.query(RECOMMENDED_PRODUCTS_QUERY);
-  return defer({featuredCollection, recommendedProducts});
+
+  const productIds = (await recommendedProducts).products.nodes.map(
+    (v) => v.id,
+  );
+
+  const sledgeSession = context.session.get('sledgeSession');
+  const reviews = await getProductsReviewInfo(sledgeSession, productIds);
+
+  return defer({featuredCollection, recommendedProducts, reviews});
 }
 
 export default function Homepage() {
@@ -39,7 +49,6 @@ function FeaturedCollection({
 }: {
   collection: FeaturedCollectionFragment;
 }) {
-  console.log(collection);
   const image = collection.image;
   return (
     <Link
@@ -61,6 +70,8 @@ function RecommendedProducts({
 }: {
   products: Promise<RecommendedProductsQuery>;
 }) {
+  const data = useLoaderData();
+
   return (
     <div className="recommended-products">
       <h2>Recommended Products</h2>
@@ -78,6 +89,11 @@ function RecommendedProducts({
                     data={product.images.nodes[0]}
                     aspectRatio="1/1"
                     sizes="(min-width: 45em) 20vw, 50vw"
+                  />
+                  <Rating
+                    size="sm"
+                    params={{productId: ''}}
+                    data={data.reviews[parseGid(product.id).id]}
                   />
                   <h4>{product.title}</h4>
                   <small>
