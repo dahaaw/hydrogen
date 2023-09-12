@@ -1,6 +1,7 @@
-import {Await, NavLink, useMatches} from '@remix-run/react';
+import {Await, Link, NavLink, useMatches} from '@remix-run/react';
 import {Suspense} from 'react';
 import type {LayoutProps} from './Layout';
+import {Badge} from '@sledge-app/react-wishlist';
 
 type HeaderProps = Pick<LayoutProps, 'header' | 'cart' | 'isLoggedIn'>;
 
@@ -88,6 +89,11 @@ function HeaderCtas({
         {isLoggedIn ? 'Account' : 'Sign in'}
       </NavLink>
       <SearchToggle />
+      <Link to="/wishlist">
+        <Badge.Root>
+          <Badge.HeaderMenu />
+        </Badge.Root>
+      </Link>
       <CartToggle cart={cart} />
     </nav>
   );

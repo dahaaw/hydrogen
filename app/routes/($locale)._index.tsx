@@ -11,27 +11,35 @@ import type {
   FeaturedCollectionFragment,
   RecommendedProductsQuery,
 } from 'storefrontapi.generated';
-import {getProductsReviewInfo} from '@sledge-app/api';
+import {
+  getProductsReviewInfo,
+  getWishlist,
+  getWishlistInfo,
+  wishlistCheck,
+} from '@sledge-app/api';
 import {Rating} from '@sledge-app/react-product-review';
+import {Trigger} from '@sledge-app/react-wishlist';
 
 export const meta: V2_MetaFunction = () => {
   return [{title: 'Hydrogen | Home'}];
 };
 
-export async function loader({context}: LoaderArgs) {
+export async function loader({request, context}: LoaderArgs) {
   const {storefront} = context;
   const {collections} = await storefront.query(FEATURED_COLLECTION_QUERY);
   const featuredCollection = collections.nodes[0];
   const recommendedProducts = storefront.query(RECOMMENDED_PRODUCTS_QUERY);
 
   const productIds = (await recommendedProducts).products.nodes.map(
-    (v) => v.id,
+    (v) => parseGid(v.id)?.id,
   );
 
   const sledgeSession = context.session.get('sledgeSession');
   const reviews = await getProductsReviewInfo(sledgeSession, productIds);
 
-  return defer({featuredCollection, recommendedProducts, reviews});
+  const wishlists = await wishlistCheck(sledgeSession, productIds);
+
+  return defer({featuredCollection, recommendedProducts, reviews, wishlists});
 }
 
 export default function Homepage() {
@@ -82,9 +90,27 @@ function RecommendedProducts({
               {products.nodes.map((product) => (
                 <Link
                   key={product.id}
-                  className="recommended-product"
+                  className="recommended-product relative"
                   to={`/products/${product.handle}`}
                 >
+                  <div className="absolute right-4 ">
+                    <Trigger
+                      params={{
+                        productId: parseGid(product.id).id,
+                        productVariantId: '',
+                        productName: product.title,
+                        productVendor: '',
+                        productSku: '',
+                        productVariantName: ``,
+                        productLink: `https://dev-learn-apps.myshopify.com/products/${product.handle}`,
+                        productImage: product.images.nodes[0].url,
+                        productCurrency:
+                          product.priceRange.minVariantPrice.currencyCode,
+                        productPrice: product.priceRange.minVariantPrice.amount,
+                      }}
+                      wishlistChecked={data?.wishlists[parseGid(product.id).id]}
+                    />
+                  </div>
                   <Image
                     data={product.images.nodes[0]}
                     aspectRatio="1/1"

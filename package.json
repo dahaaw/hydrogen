@@ -21,6 +21,7 @@
     "@sledge-app/api": "^0.0.6",
     "@sledge-app/core": "^0.0.95",
     "@sledge-app/react-product-review": "^0.0.75",
+    "@sledge-app/react-wishlist": "^0.0.145",
     "graphql": "^16.6.0",
     "graphql-tag": "^2.12.6",
     "isbot": "^3.6.6",

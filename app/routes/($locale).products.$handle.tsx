@@ -20,16 +20,22 @@ import {
   type VariantOption,
   getSelectedProductOptions,
   CartForm,
+  parseGid,
 } from '@shopify/hydrogen';
 import type {
   CartLineInput,
   SelectedOption,
 } from '@shopify/hydrogen/storefront-api-types';
 import {getVariantUrl} from '~/utils';
+import {getProductsReviewInfo, getReview} from '@sledge-app/api';
+import {Rating, Widget, WidgetHeader} from '@sledge-app/react-product-review';
 
 export const meta: V2_MetaFunction = ({data}) => {
   return [{title: `Hydrogen | ${data.product.title}`}];
 };
+
+const consoleStyle =
+  'color: white; background: black; border: 1px solid white; padding: 2px 5px; border-radius: 350px;';
 
 export async function loader({params, request, context}: LoaderArgs) {
   const {handle} = params;
@@ -58,6 +64,10 @@ export async function loader({params, request, context}: LoaderArgs) {
     throw new Response(null, {status: 404});
   }
 
+  const sledgeSession = context.session.get('sledgeSession');
+  const reviews = await getProductsReviewInfo(sledgeSession, [product.id]);
+  const reviewList = await getReview(sledgeSession, product.id);
+
   const firstVariant = product.variants.nodes[0];
   const firstVariantIsDefault = Boolean(
     firstVariant.selectedOptions.find(
@@ -85,7 +95,7 @@ export async function loader({params, request, context}: LoaderArgs) {
     variables: {handle},
   });
 
-  return defer({product, variants});
+  return defer({product, variants, reviews, reviewList});
 }
 
 function redirectToFirstVariant({
@@ -112,17 +122,48 @@ function redirectToFirstVariant({
 }
 
 export default function Product() {
-  const {product, variants} = useLoaderData<typeof loader>();
+  const {product, variants, reviewList, reviews} =
+    useLoaderData<typeof loader>();
   const {selectedVariant} = product;
   return (
-    <div className="product">
-      <ProductImage image={selectedVariant?.image} />
-      <ProductMain
-        selectedVariant={selectedVariant}
-        product={product}
-        variants={variants}
-      />
-    </div>
+    <>
+      <div className="product">
+        <ProductImage image={selectedVariant?.image} />
+        <ProductMain
+          selectedVariant={selectedVariant}
+          product={product}
+          variants={variants}
+        />
+      </div>
+      <div className="px-4">
+        <Widget.Root
+          params={{
+            productId: parseGid(product.id).id,
+            productVariantId: selectedVariant?.id
+              ? parseGid(selectedVariant.id)?.id
+              : '',
+          }}
+          onAfterAddReview={(state) => {
+            if (state === 'success') {
+              console.log('%cSledge', consoleStyle, `Add review: ${state}`);
+            } else {
+              console.error('%cSledge', consoleStyle, `Add review: ${state}`);
+            }
+          }}
+          data={reviewList}
+          LinkComponent={Link}
+        >
+          <Widget.Header>
+            <WidgetHeader.Summary
+              summaryData={reviews[parseGid(product.id).id]}
+            />
+            <WidgetHeader.AddTrigger />
+            <WidgetHeader.Sort />
+          </Widget.Header>
+          <Widget.List />
+        </Widget.Root>
+      </div>
+    </>
   );
 }
 
@@ -130,6 +171,7 @@ function ProductImage({image}: {image: ProductVariantFragment['image']}) {
   if (!image) {
     return <div className="product-image" />;
   }
+
   return (
     <div className="product-image">
       <Image
@@ -153,9 +195,17 @@ function ProductMain({
   variants: Promise<ProductVariantsQuery>;
 }) {
   const {title, descriptionHtml} = product;
+  const {reviews} = useLoaderData<typeof loader>();
   return (
     <div className="product-main">
       <h1>{title}</h1>
+      <div className="pb-4">
+        <Rating
+          size="sm"
+          data={reviews[parseGid(product.id).id]}
+          params={{productId: ''}}
+        />
+      </div>
       <ProductPrice selectedVariant={selectedVariant} />
       <br />
       <Suspense
