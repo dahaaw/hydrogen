@@ -145,6 +145,8 @@ export async function loader({context}: LoaderArgs) {
       sledgeSession,
       sledgeSettings,
       wishlistInfo,
+      sledgeApiKey: context.env.SLEDGE_API_KEY,
+      sledgeInstantSearchApiKey: context.env.SLEDGE_INSTANT_SEARCH_API_KEY,
     },
     {headers},
   );
@@ -166,6 +168,8 @@ export default function App() {
         <SledgeProvider
           sledgeSession={data.sledgeSession}
           sledgeSettings={data.sledgeSettings}
+          apiKey={data.sledgeApiKey}
+          instantSearchApiKey={data.sledgeInstantSearchApiKey}
         >
           <Layout {...data}>
             <Outlet />

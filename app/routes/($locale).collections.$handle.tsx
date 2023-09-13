@@ -1,16 +1,11 @@
 import {json, redirect, type LoaderArgs} from '@shopify/remix-oxygen';
 import {useLoaderData, Link, type V2_MetaFunction} from '@remix-run/react';
-import {
-  Pagination,
-  getPaginationVariables,
-  Image,
-  Money,
-} from '@shopify/hydrogen';
-import type {ProductItemFragment} from 'storefrontapi.generated';
-import {useVariantUrl} from '~/utils';
+import {getPaginationVariables, parseGid} from '@shopify/hydrogen';
+import {ProductFilterWidget} from '@sledge-app/react-instant-search';
+import {getResult, getSledgeSettings} from '@sledge-app/api';
 
 export const meta: V2_MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data.collection.title} Collection`}];
+  return [{title: `Hydrogen | ${data.collection?.title || 'All'} Collection`}];
 };
 
 export async function loader({request, params, context}: LoaderArgs) {
@@ -28,85 +23,43 @@ export async function loader({request, params, context}: LoaderArgs) {
     variables: {handle, ...paginationVariables},
   });
 
-  if (!collection) {
+  if (!collection && handle !== 'all') {
     throw new Response(`Collection ${handle} not found`, {
       status: 404,
     });
   }
-  return json({collection});
+
+  const paramsString = new URL(request.url).searchParams.toString();
+  const searchParams = new URLSearchParams(paramsString);
+
+  let sledgeSession = context.session.get('sledgeSession');
+  const sledgeSettings = await getSledgeSettings(sledgeSession);
+
+  const data = await getResult(
+    sledgeSession,
+    sledgeSettings,
+    context.env.SLEDGE_INSTANT_SEARCH_API_KEY || '',
+    searchParams,
+    searchParams.get('q') || '',
+    parseGid(collection?.id).id,
+    'product-filter',
+  );
+  return json({collection, data});
 }
 
 export default function Collection() {
-  const {collection} = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
 
   return (
-    <div className="collection">
-      <h1>{collection.title}</h1>
-      <p className="collection-description">{collection.description}</p>
-      <Pagination connection={collection.products}>
-        {({nodes, isLoading, PreviousLink, NextLink}) => (
-          <>
-            <PreviousLink>
-              {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
-            </PreviousLink>
-            <ProductsGrid products={nodes} />
-            <br />
-            <NextLink>
-              {isLoading ? 'Loading...' : <span>Load more ↓</span>}
-            </NextLink>
-          </>
-        )}
-      </Pagination>
-    </div>
-  );
-}
-
-function ProductsGrid({products}: {products: ProductItemFragment[]}) {
-  return (
-    <div className="products-grid">
-      {products.map((product, index) => {
-        return (
-          <ProductItem
-            key={product.id}
-            product={product}
-            loading={index < 8 ? 'eager' : undefined}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function ProductItem({
-  product,
-  loading,
-}: {
-  product: ProductItemFragment;
-  loading?: 'eager' | 'lazy';
-}) {
-  const variant = product.variants.nodes[0];
-  const variantUrl = useVariantUrl(product.handle, variant.selectedOptions);
-  return (
-    <Link
-      className="product-item"
-      key={product.id}
-      prefetch="intent"
-      to={variantUrl}
-    >
-      {product.featuredImage && (
-        <Image
-          alt={product.featuredImage.altText || product.title}
-          aspectRatio="1/1"
-          data={product.featuredImage}
-          loading={loading}
-          sizes="(min-width: 45em) 400px, 100vw"
-        />
-      )}
-      <h4>{product.title}</h4>
-      <small>
-        <Money data={product.priceRange.minVariantPrice} />
-      </small>
-    </Link>
+    <ProductFilterWidget
+      data={data.data}
+      query={{keyword: 'q'}}
+      params={{collectionId: data.collection?.id}}
+      onAfterAddToCart={() => {}}
+      onAfterAddWishlist={() => {}}
+      onAfterRemoveWishlist={() => {}}
+      onAfterRenderProduct={() => {}}
+    />
   );
 }
 

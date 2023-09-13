@@ -8,6 +8,8 @@ import {
 import {Suspense} from 'react';
 import type {LayoutProps} from './Layout';
 import {Badge} from '@sledge-app/react-wishlist';
+import {SearchIconWidget} from '@sledge-app/react-instant-search';
+import {CustomComponents} from '@sledge-app/core';
 
 type HeaderProps = Pick<LayoutProps, 'header' | 'cart' | 'isLoggedIn'>;
 
@@ -96,8 +98,17 @@ function HeaderCtas({
         {isLoggedIn ? 'Account' : 'Sign in'}
       </NavLink>
       <SearchToggle />
+      <SearchIconWidget
+        size="sm"
+        onAfterAddToCart={(state) => {}}
+        onAfterAddWishlist={(state) => {}}
+        onAfterRemoveWishlist={(state) => {}}
+        onAfterRenderProduct={(state) => {}}
+      >
+        <CustomComponents searchViewMoreResult={SledgeSearchViewMoreResult} />
+      </SearchIconWidget>
       <Link to="/wishlist">
-        <Badge.Root data={data.wishlistInfo}>
+        <Badge.Root data={data?.wishlistInfo}>
           <Badge.HeaderMenu />
         </Badge.Root>
       </Link>
@@ -188,4 +199,15 @@ function activeLinkStyle({
     fontWeight: isActive ? 'bold' : undefined,
     color: isPending ? 'grey' : 'black',
   };
+}
+
+function SledgeSearchViewMoreResult({keyword}: any) {
+  return (
+    <Link
+      to={`/search-result?q=${keyword}`}
+      className="sledge-instant-search__icon-widget-button-more"
+    >
+      View More Result
+    </Link>
+  );
 }
