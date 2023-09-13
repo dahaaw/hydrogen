@@ -1,4 +1,10 @@
-import {Await, Link, NavLink, useMatches} from '@remix-run/react';
+import {
+  Await,
+  Link,
+  NavLink,
+  useLoaderData,
+  useMatches,
+} from '@remix-run/react';
 import {Suspense} from 'react';
 import type {LayoutProps} from './Layout';
 import {Badge} from '@sledge-app/react-wishlist';
@@ -82,6 +88,7 @@ function HeaderCtas({
   isLoggedIn,
   cart,
 }: Pick<HeaderProps, 'isLoggedIn' | 'cart'>) {
+  const data = useLoaderData();
   return (
     <nav className="header-ctas" role="navigation">
       <HeaderMenuMobileToggle />
@@ -90,7 +97,7 @@ function HeaderCtas({
       </NavLink>
       <SearchToggle />
       <Link to="/wishlist">
-        <Badge.Root>
+        <Badge.Root data={data.wishlistInfo}>
           <Badge.HeaderMenu />
         </Badge.Root>
       </Link>

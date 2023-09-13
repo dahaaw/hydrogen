@@ -21,7 +21,11 @@ import appStyles from './styles/app.css';
 import {Layout} from '~/components/Layout';
 import tailwindCss from './styles/tailwind.css';
 
-import {getSledgeSession, getSledgeSettings} from '@sledge-app/api';
+import {
+  getSledgeSession,
+  getSledgeSettings,
+  getWishlistInfo,
+} from '@sledge-app/api';
 import {SledgeProvider} from '@sledge-app/core';
 import sledgeStyle from '@sledge-app/core/style.css';
 import {redirect} from 'react-router';
@@ -129,6 +133,8 @@ export async function loader({context}: LoaderArgs) {
   if (lastSledgeSession?.token !== sledgeSession?.token)
     headers.append('Set-Cookie', await context.session.commit());
 
+  const wishlistInfo = await getWishlistInfo(sledgeSession);
+
   return defer(
     {
       cart: cartPromise,
@@ -138,6 +144,7 @@ export async function loader({context}: LoaderArgs) {
       publicStoreDomain,
       sledgeSession,
       sledgeSettings,
+      wishlistInfo,
     },
     {headers},
   );

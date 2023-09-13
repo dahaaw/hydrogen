@@ -11,12 +11,7 @@ import type {
   FeaturedCollectionFragment,
   RecommendedProductsQuery,
 } from 'storefrontapi.generated';
-import {
-  getProductsReviewInfo,
-  getWishlist,
-  getWishlistInfo,
-  wishlistCheck,
-} from '@sledge-app/api';
+import {getProductsReviewInfo, wishlistCheck} from '@sledge-app/api';
 import {Rating} from '@sledge-app/react-product-review';
 import {Trigger} from '@sledge-app/react-wishlist';
 
@@ -118,7 +113,7 @@ function RecommendedProducts({
                   />
                   <Rating
                     size="sm"
-                    params={{productId: ''}}
+                    params={{productId: parseGid(product.id).id}}
                     data={data.reviews[parseGid(product.id).id]}
                   />
                   <h4>{product.title}</h4>

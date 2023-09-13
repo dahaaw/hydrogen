@@ -9,7 +9,9 @@
     "preview": "npm run build && shopify hydrogen preview",
     "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
     "typecheck": "tsc --noEmit",
-    "codegen": "shopify hydrogen codegen-unstable"
+    "codegen": "shopify hydrogen codegen-unstable",
+    "uninstall-sledge": "npm uninstall @sledge-app/api @sledge-app/core @sledge-app/react-instant-search @sledge-app/react-product-review @sledge-app/react-wishlist",
+    "install-sledge": "npm install @sledge-app/api @sledge-app/core @sledge-app/react-instant-search @sledge-app/react-product-review @sledge-app/react-wishlist"
   },
   "prettier": "@shopify/prettier-config",
   "dependencies": {
@@ -18,9 +20,10 @@
     "@shopify/cli-hydrogen": "^5.2.3",
     "@shopify/hydrogen": "^2023.7.7",
     "@shopify/remix-oxygen": "^1.1.4",
-    "@sledge-app/api": "^0.0.6",
-    "@sledge-app/core": "^0.0.95",
-    "@sledge-app/react-product-review": "^0.0.75",
+    "@sledge-app/api": "^0.0.8",
+    "@sledge-app/core": "^0.0.101",
+    "@sledge-app/react-instant-search": "^0.0.77",
+    "@sledge-app/react-product-review": "^0.0.81",
     "@sledge-app/react-wishlist": "^0.0.145",
     "graphql": "^16.6.0",
     "graphql-tag": "^2.12.6",
