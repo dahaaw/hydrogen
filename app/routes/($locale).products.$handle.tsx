@@ -27,7 +27,11 @@ import type {
   SelectedOption,
 } from '@shopify/hydrogen/storefront-api-types';
 import {getVariantUrl} from '~/utils';
-import {getProductsReviewInfo, getReview} from '@sledge-app/api';
+import {
+  getProductsReviewInfo,
+  getReview,
+  getSledgeSettings,
+} from '@sledge-app/api';
 import {Rating, Widget, WidgetHeader} from '@sledge-app/react-product-review';
 
 export const meta: V2_MetaFunction = ({data}) => {
@@ -65,6 +69,7 @@ export async function loader({params, request, context}: LoaderArgs) {
   }
 
   const sledgeSession = context.session.get('sledgeSession');
+  const sledgeSettings = await getSledgeSettings(sledgeSession);
   const reviews = await getProductsReviewInfo(sledgeSession, [product.id]);
   const reviewList = await getReview(sledgeSession, product.id);
 
@@ -95,7 +100,7 @@ export async function loader({params, request, context}: LoaderArgs) {
     variables: {handle},
   });
 
-  return defer({product, variants, reviews, reviewList});
+  return defer({product, variants, reviews, reviewList, sledgeSettings});
 }
 
 function redirectToFirstVariant({
@@ -122,7 +127,7 @@ function redirectToFirstVariant({
 }
 
 export default function Product() {
-  const {product, variants, reviewList, reviews} =
+  const {product, variants, reviewList, reviews, sledgeSettings} =
     useLoaderData<typeof loader>();
   const {selectedVariant} = product;
   return (
@@ -143,15 +148,9 @@ export default function Product() {
               ? parseGid(selectedVariant.id)?.id
               : '',
           }}
-          onAfterAddReview={(state) => {
-            if (state === 'success') {
-              console.log('%cSledge', consoleStyle, `Add review: ${state}`);
-            } else {
-              console.error('%cSledge', consoleStyle, `Add review: ${state}`);
-            }
-          }}
+          onAfterAddReview={(state) => {}}
           data={reviewList}
-          LinkComponent={Link}
+          sledgeSettings={sledgeSettings}
         >
           <Widget.Header>
             <WidgetHeader.Summary
